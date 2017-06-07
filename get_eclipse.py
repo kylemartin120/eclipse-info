@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import urllib.request as urllib2
-import time
+import sqlite3
 
 """
 The function get_info takes latitude and longitude coordinates and returns a
@@ -66,6 +66,21 @@ def dd_to_dms(dd):
     m = int((dd - d) * 60)
     s = (dd - d - (m/60)) * 3600
     return (d, m, s)
+
+"""
+The funcion print_progress prints a progress bar and a percentage of the task
+completed. It needs to have passed to it the number of iterations completed
+as well as the number of total iterations.
+"""
+def print_progress(complete, total):
+    LENGTH = 50 # the total character length of the progress bar
+    per = 100 * complete / total
+    filled = '#' * int((per / 100) * LENGTH)
+    empty = '-' * int(LENGTH * (1 - (per / 100)))
+    print("\r|{0:s}{1:s}| {2:0.2f}".format(filled, empty, per), end="\r")
+    if (complete == total):
+        print()
+    return
 
 if __name__ == "__main__":
     pass
