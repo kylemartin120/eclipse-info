@@ -1,6 +1,6 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-import re
+from bs4 import BeautifulSoup
+import urllib.request as urllib2
+import time
 
 """
 The function get_info takes latitude and longitude coordinates and returns a
@@ -10,61 +10,48 @@ tuple with the following information, in the following order:
 2) total eclipse end time
 
 If there is no total eclipse for the given location, it will return None.
-
-A selenium webdriver must also be passed to the function
-
-Note that the URL "http://aa.usno.navy.mil/data/docs/SolarEclipses.php" is used
 """
-def get_info(lat, lon, driver):
+def get_info(lat, lon):
     # convert lat and lon into degrees, minutes and seconds
     lat_dms = dd_to_dms(lat)
     lon_dms = dd_to_dms(lon)
-    
-    # navigate to the correct URL
-    driver.get("http://aa.usno.navy.mil/data/docs/SolarEclipses.php")
 
-    # find the latitude and longitude text boxes
-    latd_el = driver.find_element_by_id("dega")
-    latm_el = driver.find_element_by_id("mina")
-    lats_el = driver.find_element_by_id("seca")
-    lond_el = driver.find_element_by_id("dego")
-    lonm_el = driver.find_element_by_id("mino")
-    lons_el = driver.find_element_by_id("seco")
-
-    # find the direction radio buttons
-    # note: west and north are selected by default, so it is unecessary to
-    # find those elements
-    south_rad = driver.find_element_by_id("south")
-    east_rad = driver.find_element_by_id("east")
-
-    # find the "Get data" button
-    # note: there is no way to discern this "Get data" button from an identical
-    # one that appears earlier in the html. Therefore, the code gets a list of
-    # all the elements of the type "submit" and takes the second one
-    data_btn = driver.find_elements_by_xpath("//*[@type='submit']")[1]
-
-    # insert the latitude data
-    latd_el.send_keys(str(lat_dms[0]))
-    latm_el.send_keys(str(lat_dms[1]))
-    lats_el.send_keys(str(lat_dms[2]))
-    if (lat < 0):
-        south_rad.click()
-
-    # insert the longitude data
-    lond_el.send_keys(str(lon_dms[0]))
-    lonm_el.send_keys(str(lon_dms[1]))
-    lons_el.send_keys(str(lon_dms[2]))
+    # find lat_sign and lon_sign
+    if (lat > 0):
+        lat_sign = 1
+    else:
+        lat_sign = -1
     if (lon > 0):
-        east_rad.click()
+        lon_sign = 1
+    else:
+        lon_sign = -1
     
-    # click the "Get data" button
-    data_btn.click()
+    # format the URL
+    url = "http://aa.usno.navy.mil/solareclipse?eclipse=22017&place=&lon_sign={0:d}&lon_deg={1:d}&lon_min={2:d}&lon_sec={3:0.1f}&lat_sign={4:d}&lat_deg={5:d}&lat_min={6:d}&lat_sec={7:0.1f}&height=0".format(lon_sign, lon_dms[0], lon_dms[1], lon_dms[2], lat_sign, lat_dms[0], lat_dms[1], lat_dms[2])
+
+    # open the page using BeautifulSoup and urllib2
+    soup = BeautifulSoup(urllib2.urlopen(url).read(), "lxml")
     
-    # on the new page, find the eclipse information and store it into a tuple
-    eclipse = None
-    
-    # return the tuple
-    return eclipse
+    # find the rows of the table with eclipse information (second table on page)
+    try:
+        rows = soup.findChildren("table")[1].findChildren("tr")
+    except IndexError: # if there is not a second table, there is no eclipse
+        return None
+
+    # get eclipse information
+    if (len(rows) == 6): # if there are 6 rows, there is a total eclipse
+        start = rows[1].findChildren("td")[2].text
+        tot_start = rows[2].findChildren("td")[2].text
+        tot_end = rows[4].findChildren("td")[2].text
+        end = rows[5].findChildren("td")[2].text
+        return (start, end, tot_start, tot_end)
+    elif (len(rows) == 4): # there is a regular eclipse
+        start = rows[1].findChildren("td")[2].text
+        end = rows[3].findChildren("td")[2].text
+        return (start, end, None, None)
+        
+    # no eclipse at this location (although the code should never get here)
+    return None
 
 """
 The function dd_to_dms converts a latitude or longitude coordinate from 
