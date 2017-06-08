@@ -31,7 +31,6 @@ def get_info(lat, lon):
 
     # open the page using BeautifulSoup and urllib2
     soup = BeautifulSoup(urllib2.urlopen(url).read(), "lxml")
-    return None
     
     # find the rows of the table with eclipse information (second table on page)
     try:
@@ -112,7 +111,9 @@ def test_cameras(filename):
 
     # open the file, and write the header
     f = open(filename, 'w')
-    f.write("id,start,end,tot_start,tot_end\n")
+    f.write("id,latitude,longitude,start,end,tot_start,tot_end\n")
+    f_log = open("cams_log.csv", 'w')
+    f_log.write("id,latitude,longitude\n")
 
     # iterate through each item row in the cursor
     cnt = 0
@@ -122,15 +123,17 @@ def test_cameras(filename):
         lat = row[1]
         lon = row[2]
         if (lat is None or lon is None):
-            continue
+            f_log.write("{0:d},,\n".format(row[0]))
         elif (lat < LAT_L or lat > LAT_H or lon < LON_L or lon > LON_H):
-            continue
-        info = get_info(row[1], row[2])
-        if (info is not None):
-            num_cams += 1
-            eclipse_cams[row[0]] = info
-            f.write("{0:d},{1:s},{2:s},{3:s},{4:s}\n".format\
-                    (row[0], info[0], info[1], str(info[2]), str(info[3])))
+            f_log.write("{0:d},{1:f},{2:f}\n".format(row[0],lat,lon))
+        else:
+            info = get_info(row[1], row[2])
+            if (info is not None):
+                num_cams += 1
+                eclipse_cams[row[0]] = info
+                f.write("{0:d},{1:f},{2:f}{3:s},{4:s},{5:s},{6:s}\n".format\
+                        (row[0], lat, lon, info[0], info[1], str(info[2]),\
+                         str(info[3])))
         cnt += 1
     print_progress(cnt, num_rows, num_cams)
 
