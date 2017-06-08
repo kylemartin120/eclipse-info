@@ -31,6 +31,7 @@ def get_info(lat, lon):
 
     # open the page using BeautifulSoup and urllib2
     soup = BeautifulSoup(urllib2.urlopen(url).read(), "lxml")
+    return None
     
     # find the rows of the table with eclipse information (second table on page)
     try:
@@ -72,12 +73,13 @@ The funcion print_progress prints a progress bar and a percentage of the task
 completed. It needs to have passed to it the number of iterations completed
 as well as the number of total iterations.
 """
-def print_progress(complete, total):
-    LENGTH = 50 # the total character length of the progress bar
+def print_progress(complete, total, cams, errs):
+    LENGTH = 25 # the total character length of the progress bar
     per = 100 * complete / total
     filled = '#' * int((per / 100) * LENGTH)
-    empty = '-' * int(LENGTH * (1 - (per / 100)))
-    print("\r|{0:s}{1:s}| {2:0.2f}".format(filled, empty, per), end="\r")
+    empty = '-' * (LENGTH - int((per / 100) * LENGTH))
+    print("\r|{0:s}{1:s}| {2:0.2f}%; {3:d} cams found; {4:d} errors detected"\
+          .format(filled, empty, per, cams, errs), end="\r")
     if (complete == total):
         print()
     return
@@ -91,7 +93,7 @@ the key is the camera id (as provided in the SQL table) and the data is
 the tuple returned by the function get_info.
 """
 
-def test_cameras():
+def test_cameras(filename):
     # open the connection to the SQL database
     connection = MySQLdb.connect("localhost", "root", "", "cam2")
     cursor = connection.cursor()
@@ -102,19 +104,34 @@ def test_cameras():
     # create an empty dictionary
     eclipse_cams = {}
 
+    # open the file, and write the header
+    f = open(filename, 'w')
+    f.write("id ## start ## end ## tot_start ## tot_end\n")
+
     # iterate through each item row in the cursor
     cnt = 0
-    print_progress(cnt, num_rows)
+    num_errs = 0
+    num_cams = 0
+    print_progress(cnt, num_rows, num_cams, num_errs)
     for row in cursor:
-        info = get_info(row[1], row[2])
+        try:
+            info = get_info(row[1], row[2])
+        except:
+            num_errs += 1
+            continue
         if (info is not None):
+            num_cams += 1
             eclipse_cams[row[0]] = info
-        print_progress(cnt, num_rows)
-        
+            f.write("{0:d} ## {1:s} ## {2:s} ## {3:s} ## {4:s}\n".format\
+                    (row[0], info[0], info[1], str(info[2]), str(info[3])))
+        cnt += 1
+        print_progress(cnt, num_rows, num_cams, num_errs)
+
+    # close the file
+    f.close()
+    
     # return the dictionary
     return eclipse_cams
     
 if __name__ == "__main__":
-    cams = test_cameras()
-    print(len(cams))
-    
+    cams = test_cameras("eclipse_cams")
