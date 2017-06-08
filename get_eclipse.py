@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import urllib.request as urllib2
-import sqlite3
+import MySQLdb
 
 """
 The function get_info takes latitude and longitude coordinates and returns a
@@ -82,5 +82,39 @@ def print_progress(complete, total):
         print()
     return
 
+"""
+The function test_cameras iterates through each item in the "camera" table
+within the SQL library "cam2" and determines which ones will capture the
+eclipse (based solely on location), and whether it will capture a total
+eclipse. For those cameras that do, it will add them to a dictionary, where
+the key is the camera id (as provided in the SQL table) and the data is
+the tuple returned by the function get_info.
+"""
+
+def test_cameras():
+    # open the connection to the SQL database
+    connection = MySQLdb.connect("localhost", "root", "", "cam2")
+    cursor = connection.cursor()
+
+    # get the id, latitude and longitude of all items in the camera table
+    num_rows = cursor.execute("SELECT id, latitude, longitude FROM camera")
+
+    # create an empty dictionary
+    eclipse_cams = {}
+
+    # iterate through each item row in the cursor
+    cnt = 0
+    print_progress(cnt, num_rows)
+    for row in cursor:
+        info = get_info(row[1], row[2])
+        if (info is not None):
+            eclipse_cams[row[0]] = info
+        print_progress(cnt, num_rows)
+        
+    # return the dictionary
+    return eclipse_cams
+    
 if __name__ == "__main__":
-    pass
+    cams = test_cameras()
+    print(len(cams))
+    
