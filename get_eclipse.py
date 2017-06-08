@@ -73,13 +73,13 @@ The funcion print_progress prints a progress bar and a percentage of the task
 completed. It needs to have passed to it the number of iterations completed
 as well as the number of total iterations.
 """
-def print_progress(complete, total, cams, errs):
+def print_progress(complete, total, cams):
     LENGTH = 25 # the total character length of the progress bar
     per = 100 * complete / total
     filled = '#' * int((per / 100) * LENGTH)
     empty = '-' * (LENGTH - int((per / 100) * LENGTH))
-    print("\r|{0:s}{1:s}| {2:0.2f}%; {3:d} cams found; {4:d} errors detected"\
-          .format(filled, empty, per, cams, errs), end="\r")
+    print("\r|{0:s}{1:s}| {2:0.2f}%; {3:d} cams found"\
+          .format(filled, empty, per, cams), end="\r")
     if (complete == total):
         print()
     return
@@ -94,6 +94,12 @@ the tuple returned by the function get_info.
 """
 
 def test_cameras(filename):
+    # define latitude and longitude cutoffs (in terms of decimal degrees)
+    LAT_H = 45.5
+    LAT_L = 32
+    LON_H = -78
+    LON_L = -125
+    
     # open the connection to the SQL database
     connection = MySQLdb.connect("localhost", "root", "", "cam2")
     cursor = connection.cursor()
@@ -106,26 +112,27 @@ def test_cameras(filename):
 
     # open the file, and write the header
     f = open(filename, 'w')
-    f.write("id ## start ## end ## tot_start ## tot_end\n")
+    f.write("id,start,end,tot_start,tot_end\n")
 
     # iterate through each item row in the cursor
     cnt = 0
-    num_errs = 0
     num_cams = 0
-    print_progress(cnt, num_rows, num_cams, num_errs)
     for row in cursor:
-        try:
-            info = get_info(row[1], row[2])
-        except:
-            num_errs += 1
+        print_progress(cnt, num_rows, num_cams)
+        lat = row[1]
+        lon = row[2]
+        if (lat is None or lon is None):
             continue
+        elif (lat < LAT_L or lat > LAT_H or lon < LON_L or lon > LON_H):
+            continue
+        info = get_info(row[1], row[2])
         if (info is not None):
             num_cams += 1
             eclipse_cams[row[0]] = info
-            f.write("{0:d} ## {1:s} ## {2:s} ## {3:s} ## {4:s}\n".format\
+            f.write("{0:d},{1:s},{2:s},{3:s},{4:s}\n".format\
                     (row[0], info[0], info[1], str(info[2]), str(info[3])))
         cnt += 1
-        print_progress(cnt, num_rows, num_cams, num_errs)
+    print_progress(cnt, num_rows, num_cams)
 
     # close the file
     f.close()
@@ -134,4 +141,4 @@ def test_cameras(filename):
     return eclipse_cams
     
 if __name__ == "__main__":
-    cams = test_cameras("eclipse_cams")
+    cams = test_cameras("eclipse_cams.csv")
