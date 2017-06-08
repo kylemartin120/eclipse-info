@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import urllib.request as urllib2
 import MySQLdb
+import re
 
 """
 The function get_info takes latitude and longitude coordinates and returns a
@@ -27,7 +28,11 @@ def get_info(lat, lon):
         lon_sign = -1
     
     # format the URL
-    url = "http://aa.usno.navy.mil/solareclipse?eclipse=22017&place=&lon_sign={0:d}&lon_deg={1:d}&lon_min={2:d}&lon_sec={3:0.1f}&lat_sign={4:d}&lat_deg={5:d}&lat_min={6:d}&lat_sec={7:0.1f}&height=0".format(lon_sign, lon_dms[0], lon_dms[1], lon_dms[2], lat_sign, lat_dms[0], lat_dms[1], lat_dms[2])
+    url = "http://aa.usno.navy.mil/solareclipse?eclipse=22017&place=&lon_sign\
+    ={0:d}&lon_deg={1:d}&lon_min={2:d}&lon_sec={3:0.1f}&lat_sign={4:d}&lat_deg\
+    ={5:d}&lat_min={6:d}&lat_sec={7:0.1f}&height=0"\
+    .format(lon_sign, lon_dms[0], lon_dms[1], lon_dms[2], lat_sign, lat_dms[0],\
+            lat_dms[1], lat_dms[2])
 
     # open the page using BeautifulSoup and urllib2 (try twice)
     num_attempts = 0
@@ -101,7 +106,7 @@ the key is the camera id (as provided in the SQL table) and the data is
 the tuple returned by the function get_info.
 """
 
-def test_cameras(filename):
+def test_cameras(filename, logname):
     # define latitude and longitude cutoffs (in terms of decimal degrees)
     LAT_H = 45.5
     LAT_L = 32
@@ -118,39 +123,82 @@ def test_cameras(filename):
     # create an empty dictionary
     eclipse_cams = {}
 
-    # open the file, and write the header
-    f = open(filename, 'w')
-    f.write("id,latitude,longitude,start,end,tot_start,tot_end\n")
-    f_log = open("cams_log.csv", 'w')
-    f_log.write("id,latitude,longitude\n")
-
-    # iterate through each item row in the cursor
-    cnt = 0
-    num_cams = 0
-    for row in cursor:
-        print_progress(cnt, num_rows, num_cams)
-        lat = row[1]
-        lon = row[2]
-        if (lat is None or lon is None):
-            f_log.write("{0:d},,\n".format(row[0]))
-        elif (lat < LAT_L or lat > LAT_H or lon < LON_L or lon > LON_H):
-            f_log.write("{0:d},{1:f},{2:f}\n".format(row[0],lat,lon))
+    # open the files and find the current status of the program
+    prev_ids = []
+    try:
+        f = open(filename, 'r')    
+        f_log = open(logname, 'r')
+        if (re.match(r"id,latitude,longitude,start,end,tot_start,tot_end",\
+                     f.readline())):
+            lines = f.readlines()
+            num_cams = len(lines)
+            for line in lines:
+                m = re.match(r"^(\d+),", line)
+                if m:
+                    prev_ids.append(int(m.group(1))) 
+            f.close()
+            f = open(filename, 'a')
         else:
-            info = get_info(row[1], row[2])
-            if (info is not None):
-                num_cams += 1
-                eclipse_cams[row[0]] = info
-                f.write("{0:d},{1:f},{2:f},{3:s},{4:s},{5:s},{6:s}\n".format\
-                        (row[0], lat, lon, info[0], info[1], str(info[2]),\
-                         str(info[3])))
-        cnt += 1
-    print_progress(cnt, num_rows, num_cams)
-
-    # close the file
+            num_cams = 0
+            f.close()
+            f = open(filename, 'w')
+            f.write("id,latitude,longitude,start,end,tot_start,tot_end\n")
+        if (re.match(r"id,latitude,longitude\n", f_log.readline())):
+            lines = f_log.readlines()
+            prev_cnt = len(lines) + num_cams
+            for line in lines:
+                m = re.match(r"^(\d+),", line)
+                if m:
+                    prev_ids.append(int(m.group(1)))
+            f_log.close
+            f_log = open(logname, 'a')
+        else:
+            f_log.close()
+            f_log = open(logname, 'w')
+            f_log.write("id,latitude,longitude\n")
+    except FileNotFoundError:
+        # if no file exists, open the file and write the header
+        f = open(filename, 'w')
+        f.write("id,latitude,longitude,start,end,tot_start,tot_end\n")
+        f_log = open(logname, 'w')
+        f_log.write("id,latitude,longitude\n")
+        num_cams = 0
+        prev_cnt = 0
+    
+    # iterate through each item row in the cursor
+    last_id = max(prev_ids)
+    cnt = 0
+    try:
+        for row in cursor:
+            print_progress(cnt, num_rows, num_cams)
+            cam_id = row[0]
+            lat = row[1]
+            lon = row[2]
+            if (cam_id < last_id):
+                pass
+            elif (lat is None or lon is None):
+                f_log.write("{0:d},,\n".format(cam_id))
+            elif (lat < LAT_L or lat > LAT_H or lon < LON_L or lon > LON_H):
+                f_log.write("{0:d},{1:f},{2:f}\n".format(cam_id,lat,lon))
+            else:
+                info = get_info(lat, lon)
+                if (info is not None):
+                    num_cams += 1
+                    eclipse_cams[row[0]] = info
+                    f.write("{0:d},{1:f},{2:f},{3:s},{4:s},{5:s},{6:s}\n"\
+                            .format(cam_id, lat, lon, info[0], info[1],\
+                                    str(info[2]), str(info[3])))
+            cnt += 1
+        print_progress(cnt, num_rows, num_cams)
+    except KeyboardInterrupt:
+        print("\nUser interrupt detected: saving work and stopping execution")
+        
+    # close the files
     f.close()
+    f_log.close()
     
     # return the dictionary
     return eclipse_cams
     
 if __name__ == "__main__":
-    cams = test_cameras("eclipse_cams.csv")
+    cams = test_cameras("eclipse_cams.csv", "cams_log.csv")
