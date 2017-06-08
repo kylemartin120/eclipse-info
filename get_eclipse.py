@@ -46,9 +46,10 @@ def get_info(lat, lon):
         end = rows[5].findChildren("td")[2].text
         return (start, end, tot_start, tot_end)
     elif (len(rows) == 4): # there is a regular eclipse
-        start = rows[1].findChildren("td")[2].text
-        end = rows[3].findChildren("td")[2].text
-        return (start, end, None, None)
+        return None
+        #start = rows[1].findChildren("td")[2].text
+        #end = rows[3].findChildren("td")[2].text
+        #return (start, end, None, None)
         
     # no eclipse at this location (although the code should never get here)
     return None
@@ -131,7 +132,7 @@ def test_cameras(filename):
             if (info is not None):
                 num_cams += 1
                 eclipse_cams[row[0]] = info
-                f.write("{0:d},{1:f},{2:f}{3:s},{4:s},{5:s},{6:s}\n".format\
+                f.write("{0:d},{1:f},{2:f},{3:s},{4:s},{5:s},{6:s}\n".format\
                         (row[0], lat, lon, info[0], info[1], str(info[2]),\
                          str(info[3])))
         cnt += 1
