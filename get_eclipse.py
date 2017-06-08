@@ -31,7 +31,7 @@ def get_info(lat, lon):
 
     # open the page using BeautifulSoup and urllib2 (try twice)
     num_attempts = 0
-    while (num_attemps < 2):
+    while (num_attempts < 2):
         try:
             num_attempts = 3
             soup = BeautifulSoup(urllib2.urlopen(url).read(), "lxml")
