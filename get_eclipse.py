@@ -28,11 +28,7 @@ def get_info(lat, lon):
         lon_sign = -1
     
     # format the URL
-    url = "http://aa.usno.navy.mil/solareclipse?eclipse=22017&place=&lon_sign\
-    ={0:d}&lon_deg={1:d}&lon_min={2:d}&lon_sec={3:0.1f}&lat_sign={4:d}&lat_deg\
-    ={5:d}&lat_min={6:d}&lat_sec={7:0.1f}&height=0"\
-    .format(lon_sign, lon_dms[0], lon_dms[1], lon_dms[2], lat_sign, lat_dms[0],\
-            lat_dms[1], lat_dms[2])
+    url = "http://aa.usno.navy.mil/solareclipse?eclipse=22017&place=&lon_sign={0:d}&lon_deg={1:d}&lon_min={2:d}&lon_sec={3:0.1f}&lat_sign={4:d}&lat_deg={5:d}&lat_min={6:d}&lat_sec={7:0.1f}&height=0".format(lon_sign, lon_dms[0], lon_dms[1], lon_dms[2], lat_sign, lat_dms[0], lat_dms[1], lat_dms[2])
 
     # open the page using BeautifulSoup and urllib2 (try twice)
     num_attempts = 0
@@ -166,7 +162,10 @@ def test_cameras(filename, logname):
         prev_cnt = 0
     
     # iterate through each item row in the cursor
-    last_id = max(prev_ids)
+    if (len(prev_ids) > 0):
+        last_id = max(prev_ids)
+    else:
+        last_id = 0
     cnt = 0
     try:
         for row in cursor:
@@ -190,7 +189,7 @@ def test_cameras(filename, logname):
                                     str(info[2]), str(info[3])))
             cnt += 1
         print_progress(cnt, num_rows, num_cams)
-    except KeyboardInterrupt:
+    except:
         print("\nUser interrupt detected: saving work and stopping execution")
         
     # close the files
