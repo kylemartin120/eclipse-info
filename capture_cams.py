@@ -18,7 +18,8 @@ def create_cam_dict(filename):
             if (start_time is None or end_time is None):
                 num_fails += 1
             else:
-                cam_dict[cam_id] = [start_time, end_time]
+                duration = end_time - start_time
+                cam_dict[cam_id] = [start_time, end_time, duration]
         else:
             num_fails += 1
 
@@ -34,6 +35,10 @@ def convert_time(time_str):
 
     # if not m
     return None
+
+def get_time():
+    cur_time = time.gmtime()
+    return (cur_time.tm_hour * 3600 + cur_time.tm_min * 60 + cur_time.tm_sec)
 
 if __name__ == "__main__":
     pass
