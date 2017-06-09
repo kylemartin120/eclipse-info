@@ -5,6 +5,7 @@ def create_cam_dict(filename):
     cam_dict = {}
 
     f = open(filename, 'r')
+    f.readline() # get rid of the header line
     lines = f.readlines()
 
     num_fails = 0
