@@ -1,6 +1,6 @@
 import time
 import re
-#import archiver
+import archiver
 
 def create_cam_dict(filename):
     cam_dict = {}
@@ -69,7 +69,7 @@ def find_max_cams(filename):
             max_cams = cur_cams
         cur_time += 1
 
-    print(" 100.00% complete")
+    #print(" 100.00% complete")
     return max_cams
 
 def run_eclipse(readfile, writefile):
@@ -79,21 +79,26 @@ def run_eclipse(readfile, writefile):
     try:
         while (True):
             cur_time = get_time()
-            #f = open(writefile, 'w')
-            #f.write(header)
+            # cur_time = 65533 # test time
+            f = open(writefile, 'w')
+            header = "Camera_ID,is_Video,Duration(secs),Interval,StoreCAM_ID,URL,O/P Filename,Runtime(secs),FPS\n"
+            f.write(header)
+            added_cam = False
             #print("\r {0:d} cameras accessed".format(num_cams), end="\r")
             for cam_id in cam_dict:
                 cam = cam_dict[cam_id]
-                if (cur_time >= cam[0] and cur_time <= cam[1]\
-                    and cam[3] is False):
+                if (cur_time >= cam[0] and cur_time <= cam[1] and cam[3] is False):
+                    added_cam = True
+                    print("found cam")
                     cam_dict[cam_id][3] = True
                     num_cams += 1
-                    #f.write(...)
-            #f.close()
-            #archiver.archiver(['archiver.py', '-f', writefile])
+                    f.write("{0:s},,{1:d},1,,,,,\n".format(cam_id, cam[1] - cur_time))
+            f.close()
+            if (added_cam):
+                archiver.archiver(['archiver.py', '-f', writefile])
     except KeyboardInterrupt:
         print("\nStopping Eclipse Image Collection...")
     return
 
 if __name__ == "__main__":
-    pass
+    run_eclipse("eclipse_cams2.csv", "test.csv")
