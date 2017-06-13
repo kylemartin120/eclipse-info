@@ -1,6 +1,8 @@
 import time
 import re
 import archiver
+import camera
+import sys
 
 def create_cam_dict(filename):
     cam_dict = {}
@@ -23,6 +25,33 @@ def create_cam_dict(filename):
 
     return cam_dict
 
+def create_cam_list(filename):
+    cam_list = []
+
+    f = open(filename, 'r')
+    f.readline() # get rid of the header line
+    lines = f.readlines()
+
+    min_start = -1
+    max_end = -1
+    for line in lines:
+        m = re.search(r"^(\d+),.*,.*,.*,.*,([\d:\.]+),([\d:\.]+)", line)
+        if m:
+            cam_id = int(m.group(1))
+            start_time = convert_time(m.group(2))
+            end_time = convert_time(m.group(3))
+            try:
+                cam = archiver.get_camera_db(cam_id, 1, 1)
+                cam.get_frame()
+                if (start_time < min_start or min_start == -1):
+                    min_start = start_time
+                if (end_time > max_end):
+                    max_end = end_time
+                cam_list.append(cam_id)
+            except:
+                pass
+    return [cam_list, min_start, max_end]
+
 def convert_time(time_str):
     m = re.search(r"^(\d{2}):(\d{2}):(\d{2})", time_str)
     if m:
@@ -31,7 +60,7 @@ def convert_time(time_str):
         secs = int(m.group(3))
         return (hours * 3600 + mins * 60 + secs)
 
-    # if not m
+    # if m is None
     raise ValueError("time string not in following format: 'hh:mm:ss'")
 
 def get_time():
@@ -78,8 +107,8 @@ def run_eclipse(readfile, writefile):
     print("Collecting Eclipse Images...")
     try:
         while (True):
-            cur_time = get_time()
-            # cur_time = 65533 # test time
+            # cur_time = get_time()
+            cur_time = 65533 # test time
             f = open(writefile, 'w')
             header = "Camera_ID,is_Video,Duration(secs),Interval,StoreCAM_ID,URL,O/P Filename,Runtime(secs),FPS\n"
             f.write(header)
@@ -92,10 +121,14 @@ def run_eclipse(readfile, writefile):
                     print("found cam")
                     cam_dict[cam_id][3] = True
                     num_cams += 1
-                    f.write("{0:s},,{1:d},1,,,,,\n".format(cam_id, cam[1] - cur_time))
+                    #f.write("{0:s},,{1:d},1,,,,,\n".format(cam_id, cam[1] - cur_time))
+                    f.write("{0:s},,1,1,,,,,\n".format(cam_id))
             f.close()
             if (added_cam):
+                star_time = time.time()
                 archiver.archiver(['archiver.py', '-f', writefile])
+                #print("{0:0.2f} seconds elapsed".format(time.time() - star_time))
+            break
     except KeyboardInterrupt:
         print("\nStopping Eclipse Image Collection...")
     return
