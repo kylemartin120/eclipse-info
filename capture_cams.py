@@ -48,7 +48,7 @@ def create_cam_list(filename):
                 if (end_time > max_end):
                     max_end = end_time
                 cam_list.append(cam_id)
-            except:
+            except Exception:
                 pass
     return [cam_list, min_start, max_end]
 
@@ -101,37 +101,29 @@ def find_max_cams(filename):
     #print(" 100.00% complete")
     return max_cams
 
-def run_eclipse(readfile, writefile):
-    cam_dict = create_cam_dict(readfile)
-    num_cams = 0
-    print("Collecting Eclipse Images...")
-    try:
-        while (True):
-            # cur_time = get_time()
-            cur_time = 65533 # test time
-            f = open(writefile, 'w')
-            header = "Camera_ID,is_Video,Duration(secs),Interval,StoreCAM_ID,URL,O/P Filename,Runtime(secs),FPS\n"
-            f.write(header)
-            added_cam = False
-            #print("\r {0:d} cameras accessed".format(num_cams), end="\r")
-            for cam_id in cam_dict:
-                cam = cam_dict[cam_id]
-                if (cur_time >= cam[0] and cur_time <= cam[1] and cam[3] is False):
-                    added_cam = True
-                    print("found cam")
-                    cam_dict[cam_id][3] = True
-                    num_cams += 1
-                    #f.write("{0:s},,{1:d},1,,,,,\n".format(cam_id, cam[1] - cur_time))
-                    f.write("{0:s},,1,1,,,,,\n".format(cam_id))
-            f.close()
-            if (added_cam):
-                star_time = time.time()
-                archiver.archiver(['archiver.py', '-f', writefile])
-                #print("{0:0.2f} seconds elapsed".format(time.time() - star_time))
-            break
-    except KeyboardInterrupt:
-        print("\nStopping Eclipse Image Collection...")
-    return
+def run_eclipse(readfile, writefile, interval):
+    cam_list, min_start, max_end = create_cam_list(readfile)
+    duration = max_end - min_start
+    f = open(writefile, 'w')
+    f.write('Camera_ID,is_Video,Duration(secs),Interval,\
+    StoreCAM_ID,URL,O/P Filename,Runtime(secs),FPS\n')
+    
+    for cam in cam_list:
+        f.write('{0:d},,{1:d},{2:d},,,,,\n'.format(cam, duration, interval))
+
+    f.close()
+    cur_time = get_time()
+    #if (cur_time > min_start):
+    #    print('Eclipse has already started. Terminating execution.')
+    #    return
+    while (cur_time < min_start):
+        sys.stdout.write('\rWaiting for Eclipse to start in {0:d} seconds'\
+                         .format(min_start - cur_time))
+        sys.stdout.flush()
+
+    print('')
+    archiver.archiver(['archiver.py', '-f', writefile])
+    print('Eclipse is over. Terminating execution')
 
 if __name__ == "__main__":
-    run_eclipse("eclipse_cams2.csv", "test.csv")
+    run_eclipse("eclipse_cams_test.csv", "test.csv", 1)
