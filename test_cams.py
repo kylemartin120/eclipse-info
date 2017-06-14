@@ -22,7 +22,8 @@ def test_cams(readfile, writefile, logfile):
     header = f.readline()
     if (not re.match(r"id,latitude,longitude,start,end,tot_start,tot_end",\
                      header)):
-        raise ValueError("\"readfile\" header doesn't match expected header.")
+        raise ValueError("\"{0:s}\" header doesn't match expected header."\
+                         .format(readfile))
 
     # prepare to suppress output from archiver and camera
     real_stdout = sys.stdout
@@ -33,7 +34,8 @@ def test_cams(readfile, writefile, logfile):
     num_lines = len(lines)
     cur_line = 0
     for line in lines:
-        real_stdout.write("\r{0:0.2f} % complete".format(cur_line / num_lines))
+        real_stdout.write("\r{0:0.2f}% complete"\
+                          .format(float(cur_line) * 100 / num_lines))
         real_stdout.flush()
         m = re.search(r"^(\d+),.*,.*,.*,.*,([\d\.:]+),([\d\.:]+)", line)
         if m:
@@ -45,14 +47,17 @@ def test_cams(readfile, writefile, logfile):
                 pass
             else:
                 new_file_str += line
+        cur_line += 1
     
     sys.stdout.close()
     sys.stdout = real_stdout
-    sys.stdout.write('\n')
+    sys.stdout.write("\r100.00% complete\n")
     f.close()
+    
     f = open(writefile, 'w')
     f.write(new_file_str)
     f.close()
+    
     return
 
     
@@ -62,6 +67,6 @@ if __name__ == '__main__':
         writefile = sys.argv[2]
         logfile = sys.argv[3]
     except IndexError:
-        raise Exception("Usage: python2 test_cams.py <readfile> <writefile> \
-        <logfile>")
+        usage = "Usage: python2 test_cams.py <readfile> <writefile> <logfile>"
+        raise Exception(usage)
     test_cams(readfile, writefile, logfile)
