@@ -40,16 +40,12 @@ def create_cam_list(filename):
             cam_id = int(m.group(1))
             start_time = convert_time(m.group(2))
             end_time = convert_time(m.group(3))
-            try:
-                cam = archiver.get_camera_db(cam_id, 1, 1)
-                cam.get_frame()
-                if (start_time < min_start or min_start == -1):
-                    min_start = start_time
-                if (end_time > max_end):
-                    max_end = end_time
-                cam_list.append(cam_id)
-            except Exception:
-                pass
+            if (start_time < min_start or min_start == -1):
+                min_start = start_time
+            if (end_time > max_end):
+                max_end = end_time
+            cam_list.append(cam_id)
+
     return [cam_list, min_start, max_end]
 
 def convert_time(time_str):
@@ -113,17 +109,21 @@ def run_eclipse(readfile, writefile, interval):
 
     f.close()
     cur_time = get_time()
-    #if (cur_time > min_start):
-    #    print('Eclipse has already started. Terminating execution.')
-    #    return
-    while (cur_time < min_start):
+    if (cur_time > max_end):
+        print('Eclipse has already ended. Terminating execution.')
+        return
+    while (cur_time < min_start - 120): # provide 2 minutes to prep
         sys.stdout.write('\rWaiting for Eclipse to start in {0:d} seconds'\
                          .format(min_start - cur_time))
         sys.stdout.flush()
 
     print('')
-    archiver.archiver(['archiver.py', '-f', writefile])
-    print('Eclipse is over. Terminating execution')
+    try:
+        archiver.archiver(['archiver.py', '-f', writefile])
+    except KeyboardInterrupt:
+        print('Keyboard Interrupt detected. Terminating execution.')
+    else:
+        print('Eclipse is over. Terminating execution')
 
 if __name__ == "__main__":
-    run_eclipse("eclipse_cams_test.csv", "test.csv", 1)
+    run_eclipse("eclipse_cams_new.csv", "test.csv", 1)
