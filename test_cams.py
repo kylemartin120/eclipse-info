@@ -36,7 +36,7 @@ def test_cams(readfile, writefile, logfile):
     cur_line = 0
     start_time = time.time()
     for line in lines:
-        real_stdout.write("\r{0:0.2f}% complete; {1:d} seconds elapsed"\
+        real_stdout.write("\r{0:0.2f}% complete; {1:d} seconds elapsed    "\
                           .format(float(cur_line) * 100 / num_lines,\
                                   int(time.time() - start_time)))
                           
@@ -49,6 +49,9 @@ def test_cams(readfile, writefile, logfile):
                 cam.get_frame()
             except Exception:
                 pass
+            except KeyboardInterrupt:
+                cur_line += 1
+                continue # user can skip a non-responsive test
             else:
                 new_file_str += line
         cur_line += 1
