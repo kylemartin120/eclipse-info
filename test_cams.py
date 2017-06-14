@@ -2,6 +2,7 @@ import sys
 import re
 import archiver
 import camera
+import time
 
 def test_cams(readfile, writefile, logfile):
     if (readfile is None or writefile is None):
@@ -33,9 +34,12 @@ def test_cams(readfile, writefile, logfile):
     lines = f.readlines()
     num_lines = len(lines)
     cur_line = 0
+    start_time = time.time()
     for line in lines:
-        real_stdout.write("\r{0:0.2f}% complete"\
-                          .format(float(cur_line) * 100 / num_lines))
+        real_stdout.write("\r{0:0.2f}% complete; {1:d} seconds elapsed"\
+                          .format(float(cur_line) * 100 / num_lines,\
+                                  int(time.time() - start_time)))
+                          
         real_stdout.flush()
         m = re.search(r"^(\d+),.*,.*,.*,.*,([\d\.:]+),([\d\.:]+)", line)
         if m:
@@ -51,7 +55,8 @@ def test_cams(readfile, writefile, logfile):
     
     sys.stdout.close()
     sys.stdout = real_stdout
-    sys.stdout.write("\r100.00% complete\n")
+    sys.stdout.write("\r100.00% complete; {0:d} seconds elapsed\n"\
+                     .format(int(time.time() - start_time)))
     f.close()
     
     f = open(writefile, 'w')
