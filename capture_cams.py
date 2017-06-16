@@ -112,10 +112,16 @@ def run_eclipse(readfile, writefile, interval):
     if (cur_time > max_end):
         print('Eclipse has already ended. Terminating execution.')
         return
-    while (cur_time < min_start - 120): # provide 2 minutes to prep
-        sys.stdout.write('\rWaiting for Eclipse to start in {0:d} seconds'\
-                         .format(min_start - cur_time))
-        sys.stdout.flush()
+    try:
+        while (cur_time < min_start - 120): # provide 2 minutes to prep
+            sys.stdout.write('\rWaiting for Eclipse to start in {0:d} seconds'\
+                             .format(min_start - cur_time))
+            sys.stdout.flush()
+            cur_time = get_time()
+    except KeyboardInterrupt:
+        sys.stdout.write('\nKeyboard Interrupt detected.') 
+        sys.stdout.write(' Terminating execution.\n')
+        return
 
     print('')
     try:
