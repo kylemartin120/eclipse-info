@@ -132,4 +132,4 @@ def run_eclipse(readfile, writefile, interval):
         print('Eclipse is over. Terminating execution')
 
 if __name__ == "__main__":
-    run_eclipse("eclipse_cams_new.csv", "test.csv", 1)
+    run_eclipse("eclipse_cams_new.csv", "test.csv", 10)
